@@ -24,24 +24,38 @@ export function GoalUnblocker() {
   const [barrier, setBarrier] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const generateActionPlan = async () => {
     if (!goal.trim() || !barrier.trim()) return
 
     setIsGenerating(true)
+    setError(null)
 
-    // Simulate AI processing time
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const response = await fetch("/api/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          goal: goal.trim(),
+          barrier: barrier.trim(),
+        }),
+      })
 
-    // Mock AI-generated action plan based on common goal achievement strategies
-    const mockPlan: ActionPlan = {
-      goal: goal.trim(),
-      barrier: barrier.trim(),
-      steps: generateSteps(goal.trim(), barrier.trim()),
+      if (!response.ok) {
+        throw new Error("Failed to generate action plan")
+      }
+
+      const plan = await response.json()
+      setActionPlan(plan)
+    } catch (err) {
+      setError("Failed to generate your action plan. Please try again.")
+      console.error("Error:", err)
+    } finally {
+      setIsGenerating(false)
     }
-
-    setActionPlan(mockPlan)
-    setIsGenerating(false)
   }
 
   const generateSteps = (userGoal: string, userBarrier: string) => {
@@ -86,6 +100,7 @@ export function GoalUnblocker() {
     setGoal("")
     setBarrier("")
     setActionPlan(null)
+    setError(null)
   }
 
   return (
@@ -99,7 +114,7 @@ export function GoalUnblocker() {
             </CardTitle>
             <CardDescription>
               Share your goal and the main barrier preventing you from achieving it. We'll create a personalized action
-              plan.
+              plan using AI.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -124,6 +139,11 @@ export function GoalUnblocker() {
                 className="text-base resize-none"
               />
             </div>
+
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">{error}</div>
+            )}
+
             <Button
               onClick={generateActionPlan}
               disabled={!goal.trim() || !barrier.trim() || isGenerating}
@@ -133,12 +153,12 @@ export function GoalUnblocker() {
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating your action plan...
+                  Creating your personalized action plan...
                 </>
               ) : (
                 <>
                   <Zap className="mr-2 h-4 w-4" />
-                  Generate Action Plan
+                  Generate AI Action Plan
                 </>
               )}
             </Button>
@@ -163,7 +183,7 @@ export function GoalUnblocker() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Your Action Plan</h2>
+              <h2 className="text-2xl font-semibold">Your AI-Generated Action Plan</h2>
               <Button variant="outline" onClick={resetForm}>
                 Create New Plan
               </Button>
@@ -200,8 +220,8 @@ export function GoalUnblocker() {
                 <h3 className="font-semibold">Remember</h3>
               </div>
               <p className="text-muted-foreground">
-                Progress isn't always linear. Celebrate small wins, learn from setbacks, and adjust your approach as
-                needed. The key is to keep moving forward, one step at a time.
+                This AI-generated plan is personalized for your specific goal and barrier. Progress isn't always linear
+                - celebrate small wins, learn from setbacks, and adjust your approach as needed.
               </p>
             </CardContent>
           </Card>
